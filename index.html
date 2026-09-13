@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filament Tracker — Sisa Stok Kantor</title>
+  <meta name="description" content="Aplikasi visual reminder sisa filamen 3D printing yang simpel dan tersinkronisasi real-time.">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase Compat SDK (Bisa jalan langsung di file:// maupun di Vercel) -->
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Config Script -->
+  <script src="firebase-config.js"></script>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- Header with Theme Switcher & Cloud Sync Status -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-badge">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="2" y="5" width="17" height="14" rx="4" />
+            <path d="M22 10v4" />
+            <path d="M7 9v6" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Filament Tracker</h1>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Cloud Sync Status Indicator / Button -->
+        <button id="btn-cloud-status" class="btn btn-secondary cloud-badge" title="Status Sinkronisasi Cloud">
+          <span class="sync-dot" id="sync-dot"></span>
+          <span id="sync-status-text">Memeriksa Cloud...</span>
+        </button>
+
+        <!-- Theme Toggle Button -->
+        <button id="btn-theme-toggle" class="btn btn-secondary theme-toggle-btn" title="Ganti Tema Terang / Gelap">
+          <span class="theme-icon" id="theme-icon">☀️</span>
+          <span id="theme-label">Mode Terang</span>
+        </button>
+
+        <button id="btn-export" class="btn btn-secondary" title="Unduh cadangan data JSON">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Backup
+        </button>
+        <button id="btn-import-trigger" class="btn btn-secondary" title="Pulihkan data cadangan JSON">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Import
+        </button>
+        <input type="file" id="import-file-input" accept=".json" style="display:none;">
+
+        <button id="btn-add-spool" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Tambah Filamen
+        </button>
+      </div>
+    </header>
+
+    <!-- Toolbar: Search & Material Filter -->
+    <section class="toolbar-section">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+          stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input type="text" id="search-input" placeholder="Cari nama filamen...">
+        <button id="btn-clear-search" class="btn-clear" style="display:none;">&times;</button>
+      </div>
+
+      <div class="filter-chips" id="material-chips">
+        <button class="chip active" data-material="ALL">Semua</button>
+        <button class="chip" data-material="PLA">PLA</button>
+        <button class="chip" data-material="PLA+ 2.0">PLA+ 2.0</button>
+        <button class="chip" data-material="PETG">PETG</button>
+        <button class="chip" data-material="LAINNYA">Lainnya</button>
+      </div>
+    </section>
+
+    <!-- Main Cards Grid -->
+    <main class="cards-grid" id="spools-container">
+      <!-- Injected by app.js -->
+    </main>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <div class="empty-icon">📦</div>
+      <h3>Tidak ada filamen yang cocok</h3>
+      <p>Coba cari kata kunci lain atau reset filter.</p>
+      <button id="btn-reset-filters" class="btn btn-secondary">Tampilkan Semua</button>
+    </div>
+
+  </div>
+
+  <!-- Modal Tambah / Edit Filamen -->
+  <div class="modal-backdrop" id="spool-modal" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title">Tambah Filamen</h2>
+        <button class="btn-close-modal" id="btn-close-modal">&times;</button>
+      </div>
+
+      <form id="spool-form" class="modal-form">
+        <input type="hidden" id="spool-id">
+
+        <!-- Nama Filamen & Material -->
+        <div class="field-row">
+          <div class="field-group flex-2">
+            <label for="form-name">Nama Filamen *</label>
+            <input type="text" id="form-name" required placeholder="Contoh: PLA Merah">
+          </div>
+
+          <div class="field-group flex-1">
+            <label for="form-material">Material *</label>
+            <select id="form-material" required>
+              <option value="PLA+ 2.0">PLA+ 2.0</option>
+              <option value="PLA">PLA</option>
+              <option value="PETG">PETG</option>
+              <option value="TPU">TPU</option>
+              <option value="ABS">ABS</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Color Picker Section -->
+        <div class="field-group">
+          <label>Pilih Warna Filamen</label>
+          <div class="color-picker-pure">
+            <input type="color" id="form-color-picker" value="#dc2626" title="Klik untuk pilih warna bebas">
+            <span class="color-hint-text">Klik kotak warna untuk pilih warna bebas atau klik swatch:</span>
+          </div>
+
+          <!-- Swatches Cepat -->
+          <div class="swatches-wrap">
+            <button type="button" class="swatch-item" data-color="#dc2626" style="background:#dc2626;"
+              title="Merah"></button>
+            <button type="button" class="swatch-item" data-color="#f59e0b" style="background:#f59e0b;"
+              title="Kuning"></button>
+            <button type="button" class="swatch-item" data-color="#18181b" style="background:#18181b;"
+              title="Hitam"></button>
+            <button type="button" class="swatch-item" data-color="#f8fafc" style="background:#f8fafc;"
+              title="Putih"></button>
+            <button type="button" class="swatch-item" data-color="#64748b" style="background:#64748b;"
+              title="Abu-abu"></button>
+            <button type="button" class="swatch-item" data-color="#2563eb" style="background:#2563eb;"
+              title="Biru"></button>
+            <button type="button" class="swatch-item" data-color="#16a34a" style="background:#16a34a;"
+              title="Hijau"></button>
+            <button type="button" class="swatch-item" data-color="#ea580c" style="background:#ea580c;"
+              title="Oranye"></button>
+            <button type="button" class="swatch-item" data-color="#9333ea" style="background:#9333ea;"
+              title="Ungu"></button>
+            <button type="button" class="swatch-item" data-color="#06b6d4" style="background:#06b6d4;"
+              title="Cyan / Teal"></button>
+            <button type="button" class="swatch-item" data-color="#cbd5e1"
+              style="background:rgba(255,255,255,0.4); border: 1px dashed #94a3b8;" title="Transparan"></button>
+          </div>
+        </div>
+
+        <!-- Live Container Preview in Modal -->
+        <div class="field-group">
+          <label>Preview Sisa Stok Filamen</label>
+          <div class="modal-tank-preview">
+            <div class="tank-container modal-tank" id="modal-tank-graphic">
+              <div class="tank-fill" id="modal-tank-fill" style="width: 100%; background-color: #dc2626;"></div>
+              <span class="tank-percent-label" id="modal-tank-percent-text">100%</span>
+            </div>
+          </div>
+          <input type="range" id="form-percent" min="0" max="100" step="1" value="100" class="styled-slider">
+
+          <div class="quick-step-pills">
+            <button type="button" class="btn-pill" data-val="100">100% (Penuh)</button>
+            <button type="button" class="btn-pill" data-val="75">75%</button>
+            <button type="button" class="btn-pill" data-val="50">50%</button>
+            <button type="button" class="btn-pill" data-val="25">25%</button>
+            <button type="button" class="btn-pill" data-val="10">10%</button>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-spool">Simpan Filamen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Cloud Sync Setup / Info -->
+  <div class="modal-backdrop" id="cloud-modal" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Koneksi Cloud Sync (Firebase)</h2>
+        <button class="btn-close-modal" id="btn-close-cloud-modal">&times;</button>
+      </div>
+      <div class="modal-form">
+        <p style="font-size:13px; color:var(--text-secondary); line-height:1.6;">
+          Agar sisa filamen <strong>otomatis sinkron secara real-time antara HP dan Laptop</strong>, hubungkan database gratis Google Firebase:
+        </p>
+        
+        <ol style="font-size:12px; color:var(--text-secondary); padding-left:18px; line-height:1.7;">
+          <li>Buka <a href="https://console.firebase.google.com" target="_blank" style="color:var(--color-brand); font-weight:600;">console.firebase.google.com</a> (Login akun Google).</li>
+          <li>Klik <strong>Add Project</strong> &rarr; beri nama (misal: <code>filament-kantor</code>).</li>
+          <li>Masuk ke menu <strong>Build &rarr; Firestore Database &rarr; Create Database</strong> (Pilih mode <em>Start in test mode</em>).</li>
+          <li>Klik ikon Web <code>&lt;/&gt;</code> &rarr; Salin objek <code>firebaseConfig</code>.</li>
+          <li>Tempel kodenya ke file <code>firebase-config.js</code> atau tempel JSON di bawah:</li>
+        </ol>
+
+        <div class="field-group">
+          <label for="cloud-config-input">Tempel Objek Firebase Config:</label>
+          <textarea id="cloud-config-input" rows="5" placeholder='{\n  "apiKey": "AIzaSy...",\n  "projectId": "filament-kantor",\n  ...\n}' style="font-family:monospace; font-size:11px; background:var(--bg-input); border:1px solid var(--border-light); border-radius:6px; color:var(--text-primary); padding:8px;"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btn-close-cloud">Tutup</button>
+          <button type="button" class="btn btn-primary" id="btn-save-cloud">Simpan & Hubungkan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- App Script (Standard Script) -->
+  <script src="app.js"></script>
+</body>
+
+</html>
