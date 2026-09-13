@@ -83,11 +83,11 @@ function setTheme(theme) {
   const icon = document.getElementById('theme-icon');
   const label = document.getElementById('theme-label');
   if (theme === 'dark') {
-    icon.textContent = '☀️';
-    label.textContent = 'Mode Terang';
+    if (icon) icon.textContent = '☀️';
+    if (label) label.textContent = 'Mode Terang';
   } else {
-    icon.textContent = '🌙';
-    label.textContent = 'Mode Gelap';
+    if (icon) icon.textContent = '🌙';
+    if (label) label.textContent = 'Mode Gelap';
   }
 }
 
@@ -257,6 +257,7 @@ function renderApp() {
 
   emptyState.style.display = 'none';
   container.innerHTML = filtered.map(spool => createCardHtml(spool)).join('');
+  setupSliderTouchEnhancements();
 }
 
 function createCardHtml(spool) {
@@ -298,10 +299,23 @@ function createCardHtml(spool) {
         </div>
       </div>
 
-      <!-- Bottom: Compact Slider & Quick Steps -->
+      <!-- Bottom: Compact Slider, Direct Nominal Input & Quick Steps -->
       <div class="slider-control-box">
         <div class="slider-info-row">
-          <span class="slider-label">Atur Sisa:</span>
+          <div class="slider-nominal-group">
+            <span class="slider-label">Sisa:</span>
+            <div class="nominal-input-wrap">
+              <input type="number" 
+                     class="percent-num-input" 
+                     id="num-input-${spool.id}" 
+                     min="0" max="100" 
+                     value="${percent}"
+                     oninput="handleNumInputChange('${spool.id}', this.value)"
+                     title="Ketik nominal persentase (0-100)">
+              <span class="percent-unit">%</span>
+            </div>
+          </div>
+
           <div class="quick-steps-bar">
             <button class="step-btn" onclick="stepPercent('${spool.id}', -10)" title="Kurang 10%">-10%</button>
             <button class="step-btn" onclick="stepPercent('${spool.id}', -5)" title="Kurang 5%">-5%</button>
@@ -311,6 +325,7 @@ function createCardHtml(spool) {
         </div>
 
         <input type="range" class="styled-slider" id="slider-${spool.id}"
+               data-id="${spool.id}"
                min="0" max="100" step="1" value="${percent}"
                oninput="handleSliderChange('${spool.id}', this.value)"
                title="Geser sisa filamen">
@@ -331,6 +346,47 @@ function handleSliderChange(id, value) {
   target.percent = percent;
   target.updatedAt = Date.now();
   saveLocalData();
+
+  // Sync the direct numeric input field
+  const numInput = document.getElementById(`num-input-${id}`);
+  if (numInput && parseInt(numInput.value, 10) !== percent) {
+    numInput.value = percent;
+  }
+
+  updateTankVisual(id, percent, target.color);
+
+  // Sync to Firestore
+  if (isCloudActive && db) {
+    if (sliderDebounceTimers[id]) clearTimeout(sliderDebounceTimers[id]);
+    sliderDebounceTimers[id] = setTimeout(() => {
+      db.collection('spools').doc(id).set(target, { merge: true }).catch(err => {
+        console.error('Failed to sync spool change to Firestore:', err);
+      });
+    }, 150);
+  }
+}
+
+/**
+ * Handle Direct Nominal Numeric Input
+ */
+function handleNumInputChange(id, value) {
+  if (value === '' || isNaN(value)) return;
+  let percent = parseInt(value, 10);
+  if (isNaN(percent)) return;
+  percent = Math.max(0, Math.min(100, percent));
+
+  const target = spools.find(s => s.id === id);
+  if (!target) return;
+
+  target.percent = percent;
+  target.updatedAt = Date.now();
+  saveLocalData();
+
+  // Sync the slider input
+  const slider = document.getElementById(`slider-${id}`);
+  if (slider && parseInt(slider.value, 10) !== percent) {
+    slider.value = percent;
+  }
 
   updateTankVisual(id, percent, target.color);
 
@@ -362,6 +418,9 @@ function stepPercent(id, delta) {
   const slider = document.getElementById(`slider-${id}`);
   if (slider) slider.value = newPercent;
 
+  const numInput = document.getElementById(`num-input-${id}`);
+  if (numInput) numInput.value = newPercent;
+
   updateTankVisual(id, newPercent, target.color);
 
   if (isCloudActive && db) {
@@ -369,6 +428,65 @@ function stepPercent(id, delta) {
       console.error('Failed to sync step to Firestore:', err);
     });
   }
+}
+
+/**
+ * Ultra-Responsive Touch/Pointer Slider Helper
+ * Solves mobile issue where slider drops touch or fails to drag when pressed off-center
+ */
+function setupSliderTouchEnhancements() {
+  document.querySelectorAll('.styled-slider').forEach(slider => {
+    if (slider._touchBound) return;
+    slider._touchBound = true;
+
+    const id = slider.getAttribute('data-id') || (slider.id && slider.id.replace('slider-', ''));
+    if (!id) return;
+
+    let isTracking = false;
+
+    const calcVal = (clientX) => {
+      const rect = slider.getBoundingClientRect();
+      if (rect.width <= 0) return slider.value;
+      const x = clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, x / rect.width));
+      return Math.round(ratio * 100);
+    };
+
+    slider.addEventListener('pointerdown', (e) => {
+      try {
+        slider.setPointerCapture(e.pointerId);
+      } catch (err) {}
+      isTracking = true;
+      const val = calcVal(e.clientX);
+      if (slider.value != val) {
+        slider.value = val;
+        handleSliderChange(id, val);
+      }
+    }, { passive: true });
+
+    slider.addEventListener('pointermove', (e) => {
+      if (!isTracking) return;
+      const val = calcVal(e.clientX);
+      if (slider.value != val) {
+        slider.value = val;
+        handleSliderChange(id, val);
+      }
+    }, { passive: true });
+
+    const stopTracking = (e) => {
+      if (isTracking) {
+        isTracking = false;
+        try {
+          if (slider.hasPointerCapture(e.pointerId)) {
+            slider.releasePointerCapture(e.pointerId);
+          }
+        } catch (err) {}
+      }
+    };
+
+    slider.addEventListener('pointerup', stopTracking);
+    slider.addEventListener('pointercancel', stopTracking);
+  });
 }
 
 function updateTankVisual(id, percent, color) {
@@ -400,6 +518,7 @@ const colorPicker = document.getElementById('form-color-picker');
 const formPercent = document.getElementById('form-percent');
 const modalTankFill = document.getElementById('modal-tank-fill');
 const modalTankPercentText = document.getElementById('modal-tank-percent-text');
+const modalFormPercentNum = document.getElementById('modal-form-percent-num');
 
 function updateModalTankPreview() {
   const val = formPercent.value;
@@ -407,6 +526,10 @@ function updateModalTankPreview() {
   modalTankFill.style.width = `${val}%`;
   modalTankFill.style.backgroundColor = col;
   modalTankPercentText.textContent = `${val}%`;
+
+  if (modalFormPercentNum && modalFormPercentNum.value != val) {
+    modalFormPercentNum.value = val;
+  }
 }
 
 function openAddModal() {
@@ -416,6 +539,7 @@ function openAddModal() {
   
   colorPicker.value = '#dc2626';
   formPercent.value = 100;
+  if (modalFormPercentNum) modalFormPercentNum.value = 100;
   document.getElementById('form-material').value = 'PLA+ 2.0';
 
   updateModalTankPreview();
@@ -433,7 +557,9 @@ function openEditModal(id) {
   document.getElementById('form-name').value = target.name || '';
   document.getElementById('form-material').value = target.material || 'PLA+ 2.0';
   colorPicker.value = target.color || '#dc2626';
-  formPercent.value = target.percent !== undefined ? target.percent : 100;
+  const pct = target.percent !== undefined ? target.percent : 100;
+  formPercent.value = pct;
+  if (modalFormPercentNum) modalFormPercentNum.value = pct;
 
   updateModalTankPreview();
   modal.style.display = 'flex';
@@ -445,6 +571,16 @@ function closeModal() {
 
 colorPicker.addEventListener('input', updateModalTankPreview);
 formPercent.addEventListener('input', updateModalTankPreview);
+
+if (modalFormPercentNum) {
+  modalFormPercentNum.addEventListener('input', () => {
+    let val = parseInt(modalFormPercentNum.value, 10);
+    if (isNaN(val)) return;
+    val = Math.max(0, Math.min(100, val));
+    formPercent.value = val;
+    updateModalTankPreview();
+  });
+}
 
 document.querySelectorAll('.btn-pill').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -731,5 +867,6 @@ window.openEditModal = openEditModal;
 window.deleteSpool = deleteSpool;
 window.stepPercent = stepPercent;
 window.handleSliderChange = handleSliderChange;
+window.handleNumInputChange = handleNumInputChange;
 
 document.addEventListener('DOMContentLoaded', init);
