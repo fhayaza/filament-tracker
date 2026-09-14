@@ -869,4 +869,13 @@ window.stepPercent = stepPercent;
 window.handleSliderChange = handleSliderChange;
 window.handleNumInputChange = handleNumInputChange;
 
+// Register Service Worker for PWA Installation
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((err) => {
+      console.log('ServiceWorker registration skipped or failed:', err);
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', init);

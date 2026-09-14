@@ -17,6 +17,17 @@
 
   <link rel="stylesheet" href="style.css">
 
+  <!-- PWA & Web App Manifest Configuration -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b0f19">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Filament Tracker">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
   <!-- Firebase Compat SDK (Bisa jalan langsung di file:// maupun di Vercel) -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
@@ -31,14 +42,10 @@
     <!-- Header Bersih: Judul Dekat Logo, Tombol Tema Hanya Icon, Aksi Tertata -->
     <header class="app-header">
       <div class="header-top-row">
-        <!-- Logo & Judul Berdampingan di Kiri -->
+        <!-- Logo & Judul Berdampingan di Kiri (Simplified Filament Spool) -->
         <div class="header-brand">
-          <div class="brand-badge">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2">
-              <rect x="2" y="5" width="17" height="14" rx="4" />
-              <path d="M22 10v4" />
-              <path d="M7 9v6" />
-            </svg>
+          <div class="brand-badge" title="Filament Tracker">
+            <img src="icon-192.png" alt="Filament Spool Logo" class="brand-spool-img">
           </div>
           <h1 class="brand-title">Filament Tracker</h1>
         </div>
