@@ -4,8 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Filament Tracker — Sisa Stok Kantor</title>
-  <meta name="description" content="Aplikasi visual reminder sisa filamen 3D printing yang simpel dan tersinkronisasi real-time.">
+  <title>Filament Tracker</title>
+  <meta name="description"
+    content="Aplikasi visual reminder sisa filamen 3D printing yang simpel dan tersinkronisasi real-time.">
 
   <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,12 +45,14 @@
 
         <!-- Kontrol Pojok Kanan: Status Cloud (Bulatan Hijau/Merah) & Icon Tema -->
         <div class="header-top-controls">
-          <button id="btn-cloud-status" class="btn btn-secondary cloud-status-btn" title="Cloud: Menghubungkan..." aria-label="Status Cloud">
+          <button id="btn-cloud-status" class="btn btn-secondary cloud-status-btn" title="Cloud: Menghubungkan..."
+            aria-label="Status Cloud">
             <span class="sync-dot" id="sync-dot"></span>
           </button>
 
           <!-- Tombol Tema: Hanya Icon Matahari / Bulan -->
-          <button id="btn-theme-toggle" class="btn btn-secondary theme-icon-btn" title="Ganti Tema" aria-label="Ganti Tema">
+          <button id="btn-theme-toggle" class="btn btn-secondary theme-icon-btn" title="Ganti Tema"
+            aria-label="Ganti Tema">
             <span class="theme-icon" id="theme-icon">☀️</span>
           </button>
         </div>
@@ -198,14 +201,14 @@
               <span class="percent-unit">%</span>
             </div>
           </div>
-          
+
           <div class="modal-tank-preview">
             <div class="tank-container modal-tank" id="modal-tank-graphic">
               <div class="tank-fill" id="modal-tank-fill" style="width: 100%; background-color: #dc2626;"></div>
               <span class="tank-percent-label" id="modal-tank-percent-text">100%</span>
             </div>
           </div>
-          
+
           <input type="range" id="form-percent" min="0" max="100" step="1" value="100" class="styled-slider">
 
           <div class="quick-step-pills">
@@ -239,7 +242,9 @@
 
         <div class="field-group">
           <label for="cloud-config-input">Objek Firebase Config:</label>
-          <textarea id="cloud-config-input" rows="6" placeholder='{\n  "apiKey": "AIzaSy...",\n  "projectId": "filament-kantor",\n  ...\n}' style="font-family:monospace; font-size:11px; background:var(--bg-input); border:1px solid var(--border-light); border-radius:6px; color:var(--text-primary); padding:8px;"></textarea>
+          <textarea id="cloud-config-input" rows="6"
+            placeholder='{\n  "apiKey": "AIzaSy...",\n  "projectId": "filament-kantor",\n  ...\n}'
+            style="font-family:monospace; font-size:11px; background:var(--bg-input); border:1px solid var(--border-light); border-radius:6px; color:var(--text-primary); padding:8px;"></textarea>
         </div>
 
         <div class="modal-actions">
