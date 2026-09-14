@@ -78,7 +78,8 @@
 html,
 body {
   overflow-x: hidden;
-  max-width: 100vw;
+  width: 100%;
+  max-width: 100%;
 }
 
 body {
@@ -260,36 +261,48 @@ body {
   line-height: 1;
 }
 
-/* Cloud Sync Badge */
-.cloud-badge {
-  font-size: 12px;
-  font-weight: 600;
+/* Cloud Status Indicator Button (Icon-only Dot: Hijau / Merah) */
+.cloud-status-btn {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 12px;
+  justify-content: center;
   cursor: pointer;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cloud-status-btn:hover {
+  background: var(--bg-card);
+  border-color: var(--border-focus);
+  transform: scale(1.06);
 }
 
 .sync-dot {
-  width: 9px;
-  height: 9px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background-color: #f59e0b;
   display: inline-block;
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
   flex-shrink: 0;
   transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 .sync-dot.connected {
   background-color: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.9);
 }
 
 .sync-dot.error {
   background-color: #ef4444;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
 }
 
 /* ==========================================================================
@@ -1090,10 +1103,11 @@ body {
     gap: 6px;
   }
 
-  .cloud-badge {
-    padding: 6px 10px;
-    font-size: 11px;
+  .cloud-status-btn {
+    width: 36px;
+    height: 36px;
     min-height: 36px;
+    padding: 0;
   }
 
   .theme-icon-btn {

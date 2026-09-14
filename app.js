@@ -126,21 +126,17 @@ function getActiveFirebaseConfig() {
 
 function updateSyncBadge(status, message) {
   const dot = document.getElementById('sync-dot');
-  const text = document.getElementById('sync-status-text');
   const btn = document.getElementById('btn-cloud-status');
 
   if (status === 'connected') {
-    dot.className = 'sync-dot connected';
-    text.textContent = 'Cloud';
-    if (btn) btn.title = 'Cloud Aktif (Real-time)';
+    if (dot) dot.className = 'sync-dot connected';
+    if (btn) btn.title = 'Cloud: Online (Real-time)';
   } else if (status === 'error') {
-    dot.className = 'sync-dot error';
-    text.textContent = 'Offline';
-    if (btn) btn.title = 'Gagal Koneksi Cloud';
+    if (dot) dot.className = 'sync-dot error';
+    if (btn) btn.title = 'Cloud: Error / Terputus';
   } else {
-    dot.className = 'sync-dot';
-    text.textContent = 'Lokal';
-    if (btn) btn.title = 'Mode Lokal (Klik untuk setup Cloud)';
+    if (dot) dot.className = 'sync-dot';
+    if (btn) btn.title = 'Cloud: Mode Lokal (Klik untuk setup)';
   }
 }
 
