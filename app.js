@@ -260,10 +260,69 @@ function renderApp() {
   setupSliderTouchEnhancements();
 }
 
+// Slider Lock State (Anti-Kepencet Saat Scroll)
+let activeUnlockedSpoolId = null;
+let sliderAutoLockTimer = null;
+
+function unlockSlider(id) {
+  if (activeUnlockedSpoolId && activeUnlockedSpoolId !== id) {
+    lockSlider(activeUnlockedSpoolId);
+  }
+
+  activeUnlockedSpoolId = id;
+  const guard = document.getElementById(`guard-${id}`);
+  const lockIcon = document.getElementById(`lock-icon-${id}`);
+  const lockBtn = document.getElementById(`lock-btn-${id}`);
+
+  if (guard) guard.classList.add('is-unlocked');
+  if (lockIcon) lockIcon.textContent = '🔓';
+  if (lockBtn) lockBtn.classList.add('is-active');
+
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(20);
+  }
+
+  resetAutoLockTimer(id);
+}
+
+function lockSlider(id) {
+  const guard = document.getElementById(`guard-${id}`);
+  const lockIcon = document.getElementById(`lock-icon-${id}`);
+  const lockBtn = document.getElementById(`lock-btn-${id}`);
+
+  if (guard) guard.classList.remove('is-unlocked');
+  if (lockIcon) lockIcon.textContent = '🔒';
+  if (lockBtn) lockBtn.classList.remove('is-active');
+
+  if (activeUnlockedSpoolId === id) {
+    activeUnlockedSpoolId = null;
+  }
+  if (sliderAutoLockTimer) {
+    clearTimeout(sliderAutoLockTimer);
+    sliderAutoLockTimer = null;
+  }
+}
+
+function toggleSliderLock(id) {
+  if (activeUnlockedSpoolId === id) {
+    lockSlider(id);
+  } else {
+    unlockSlider(id);
+  }
+}
+
+function resetAutoLockTimer(id) {
+  if (sliderAutoLockTimer) clearTimeout(sliderAutoLockTimer);
+  sliderAutoLockTimer = setTimeout(() => {
+    lockSlider(id);
+  }, 4000); // 4 detik idle otomatis terkunci kembali agar scroll aman
+}
+
 function createCardHtml(spool) {
   const percent = Math.max(0, Math.min(100, Math.round(spool.percent)));
   const isFull = percent >= 100;
   const filamentColor = spool.color || '#dc2626';
+  const isUnlocked = activeUnlockedSpoolId === spool.id;
 
   return `
     <article class="filament-card" id="card-${spool.id}" 
@@ -317,6 +376,12 @@ function createCardHtml(spool) {
           </div>
 
           <div class="quick-steps-bar">
+            <button class="step-btn btn-lock-toggle ${isUnlocked ? 'is-active' : ''}" 
+                    id="lock-btn-${spool.id}" 
+                    onclick="toggleSliderLock('${spool.id}')" 
+                    title="Kunci / Buka Slider">
+              <span id="lock-icon-${spool.id}">${isUnlocked ? '🔓' : '🔒'}</span>
+            </button>
             <button class="step-btn" onclick="stepPercent('${spool.id}', -10)" title="Kurang 10%">-10%</button>
             <button class="step-btn" onclick="stepPercent('${spool.id}', -5)" title="Kurang 5%">-5%</button>
             <button class="step-btn" onclick="stepPercent('${spool.id}', 5)" title="Tambah 5%">+5%</button>
@@ -324,11 +389,18 @@ function createCardHtml(spool) {
           </div>
         </div>
 
-        <input type="range" class="styled-slider" id="slider-${spool.id}"
-               data-id="${spool.id}"
-               min="0" max="100" step="1" value="${percent}"
-               oninput="handleSliderChange('${spool.id}', this.value)"
-               title="Geser sisa filamen">
+        <!-- Touch Guard: Dilindungi agar scroll halaman tidak menggeser slider secara tidak sengaja -->
+        <div class="slider-touch-guard ${isUnlocked ? 'is-unlocked' : ''}" id="guard-${spool.id}">
+          <input type="range" class="styled-slider" id="slider-${spool.id}"
+                 data-id="${spool.id}"
+                 min="0" max="100" step="1" value="${percent}"
+                 oninput="handleSliderChange('${spool.id}', this.value)"
+                 title="Geser sisa filamen">
+                 
+          <div class="slider-lock-overlay" id="overlay-${spool.id}" onclick="unlockSlider('${spool.id}')" title="Tekan dulu untuk menggeser">
+            <span class="lock-pill"><span class="lock-pill-icon">🔒</span> Tekan untuk geser</span>
+          </div>
+        </div>
       </div>
 
     </article>
@@ -432,7 +504,7 @@ function stepPercent(id, delta) {
 
 /**
  * Ultra-Responsive Touch/Pointer Slider Helper
- * Solves mobile issue where slider drops touch or fails to drag when pressed off-center
+ * Aman: Hanya aktif saat unlocked, tidak pernah membajak scroll halaman saat locked
  */
 function setupSliderTouchEnhancements() {
   document.querySelectorAll('.styled-slider').forEach(slider => {
@@ -453,10 +525,15 @@ function setupSliderTouchEnhancements() {
     };
 
     slider.addEventListener('pointerdown', (e) => {
+      // HANYA geser jika slider ini sudah dibuka kuncinya!
+      if (activeUnlockedSpoolId !== id) return;
+
       try {
         slider.setPointerCapture(e.pointerId);
       } catch (err) {}
       isTracking = true;
+      resetAutoLockTimer(id);
+
       const val = calcVal(e.clientX);
       if (slider.value != val) {
         slider.value = val;
@@ -465,7 +542,9 @@ function setupSliderTouchEnhancements() {
     }, { passive: true });
 
     slider.addEventListener('pointermove', (e) => {
-      if (!isTracking) return;
+      if (!isTracking || activeUnlockedSpoolId !== id) return;
+      resetAutoLockTimer(id);
+
       const val = calcVal(e.clientX);
       if (slider.value != val) {
         slider.value = val;
@@ -476,6 +555,7 @@ function setupSliderTouchEnhancements() {
     const stopTracking = (e) => {
       if (isTracking) {
         isTracking = false;
+        resetAutoLockTimer(id);
         try {
           if (slider.hasPointerCapture(e.pointerId)) {
             slider.releasePointerCapture(e.pointerId);
@@ -488,6 +568,16 @@ function setupSliderTouchEnhancements() {
     slider.addEventListener('pointercancel', stopTracking);
   });
 }
+
+// Otomatis kunci kembali jika pengguna mengetuk di luar kartu/slider yang sedang aktif
+document.addEventListener('pointerdown', (e) => {
+  if (!activeUnlockedSpoolId) return;
+  const activeGuard = document.getElementById(`guard-${activeUnlockedSpoolId}`);
+  const activeLockBtn = document.getElementById(`lock-btn-${activeUnlockedSpoolId}`);
+  if (activeGuard && !activeGuard.contains(e.target) && activeLockBtn && !activeLockBtn.contains(e.target)) {
+    lockSlider(activeUnlockedSpoolId);
+  }
+}, { passive: true });
 
 function updateTankVisual(id, percent, color) {
   const fillEl = document.getElementById(`tank-fill-${id}`);
@@ -868,6 +958,9 @@ window.deleteSpool = deleteSpool;
 window.stepPercent = stepPercent;
 window.handleSliderChange = handleSliderChange;
 window.handleNumInputChange = handleNumInputChange;
+window.unlockSlider = unlockSlider;
+window.lockSlider = lockSlider;
+window.toggleSliderLock = toggleSliderLock;
 
 // Register Service Worker for PWA Installation
 if ('serviceWorker' in navigator) {

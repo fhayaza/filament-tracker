@@ -718,6 +718,81 @@ body {
   border-color: var(--border-focus);
 }
 
+/* Slider Touch Guard & Lock System (Anti-Kepencet Saat Scroll) */
+.slider-touch-guard {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 2px 0;
+}
+
+.slider-lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 15, 25, 0.45);
+  backdrop-filter: blur(2px);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  z-index: 6;
+  touch-action: pan-y; /* PENTING: jari tetap bisa scroll vertikal halaman tanpa geser slider */
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  user-select: none;
+}
+
+.lock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s;
+  pointer-events: none;
+}
+
+.slider-lock-overlay:hover .lock-pill,
+.slider-lock-overlay:active .lock-pill {
+  background: var(--bg-surface);
+  color: var(--color-brand);
+  border-color: var(--border-focus);
+  transform: scale(1.05);
+}
+
+/* Ketika Slider Dibuka (Unlocked): Overlay Sembunyi & Thumb Menyala */
+.slider-touch-guard.is-unlocked .slider-lock-overlay {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.btn-lock-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 4px 6px;
+  font-size: 12px;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.btn-lock-toggle.is-active {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border-color: #0284c7;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+}
+
 /* Styled Range Input - Touch Optimized with zero gesture interruption */
 .styled-slider {
   -webkit-appearance: none;
@@ -732,11 +807,14 @@ body {
   background: transparent;
   outline: none;
   cursor: pointer;
-  touch-action: none !important;
-  /* CRITICAL: prevents browser scroll from interrupting sliding */
+  touch-action: pan-y; /* Default saat terkunci: aman untuk scroll halaman */
   -webkit-tap-highlight-color: transparent;
   display: block;
   user-select: none;
+}
+
+.slider-touch-guard.is-unlocked .styled-slider {
+  touch-action: none !important; /* Aktif geser saat unlocked */
 }
 
 .styled-slider::-webkit-slider-runnable-track {
@@ -783,6 +861,18 @@ body {
 .styled-slider:active::-webkit-slider-thumb {
   transform: scale(1.2);
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.9);
+}
+
+.slider-touch-guard.is-unlocked .styled-slider::-webkit-slider-thumb {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.4), 0 2px 10px rgba(0, 0, 0, 0.6);
+  transform: scale(1.12);
+}
+
+.slider-touch-guard.is-unlocked .styled-slider::-moz-range-thumb {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.4), 0 2px 10px rgba(0, 0, 0, 0.6);
+  transform: scale(1.12);
 }
 
 /* ==========================================================================
