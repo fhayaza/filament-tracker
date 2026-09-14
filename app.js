@@ -16,6 +16,8 @@ const DEFAULT_SPOOLS = [
     name: 'PLA Merah (Strava & Detail)',
     material: 'PLA',
     color: '#dc2626',
+    colorMode: 'solid',
+    colorFinish: 'standard',
     percent: 85,
     updatedAt: Date.now() - 3600000
   },
@@ -24,6 +26,8 @@ const DEFAULT_SPOOLS = [
     name: 'PLA Kuning (Tulang & Part)',
     material: 'PLA',
     color: '#f59e0b',
+    colorMode: 'solid',
+    colorFinish: 'standard',
     percent: 30,
     updatedAt: Date.now() - 7200000
   },
@@ -32,6 +36,8 @@ const DEFAULT_SPOOLS = [
     name: 'PLA+ 2.0 Hitam (Clicker Cap & Box)',
     material: 'PLA+ 2.0',
     color: '#18181b',
+    colorMode: 'solid',
+    colorFinish: 'standard',
     percent: 75,
     updatedAt: Date.now() - 14400000
   },
@@ -40,8 +46,21 @@ const DEFAULT_SPOOLS = [
     name: 'PLA Putih (Keycap Polos)',
     material: 'PLA',
     color: '#f8fafc',
+    colorMode: 'solid',
+    colorFinish: 'standard',
     percent: 50,
     updatedAt: Date.now() - 86400000
+  },
+  {
+    id: 'spool-5',
+    name: 'PLA Silk Dual Color (Blue - Purple)',
+    material: 'PLA',
+    color: '#2563eb',
+    color2: '#9333ea',
+    colorMode: 'dual',
+    colorFinish: 'silk',
+    percent: 65,
+    updatedAt: Date.now() - 1800000
   }
 ];
 
@@ -318,20 +337,43 @@ function resetAutoLockTimer(id) {
   }, 4000); // 4 detik idle otomatis terkunci kembali agar scroll aman
 }
 
+function getSpoolBackground(spool) {
+  const c1 = spool.color || '#dc2626';
+  if (spool.colorMode === 'dual' && spool.color2) {
+    const c2 = spool.color2;
+    return `linear-gradient(90deg, ${c1} 0%, ${c1} 49%, ${c2} 51%, ${c2} 100%)`;
+  }
+  return c1;
+}
+
+function getSpoolCardBorder(spool) {
+  const c1 = spool.color || '#dc2626';
+  if (spool.colorMode === 'dual' && spool.color2) {
+    const c2 = spool.color2;
+    return `border-top: 5px solid transparent; border-image: linear-gradient(90deg, ${c1}, ${c2}) 1; box-shadow: 0 4px 18px ${c1}22;`;
+  }
+  return `border-top-color: ${c1}; box-shadow: 0 4px 18px ${c1}22;`;
+}
+
 function createCardHtml(spool) {
   const percent = Math.max(0, Math.min(100, Math.round(spool.percent)));
   const isFull = percent >= 100;
-  const filamentColor = spool.color || '#dc2626';
   const isUnlocked = activeUnlockedSpoolId === spool.id;
+  const isDual = spool.colorMode === 'dual';
+  const isSilk = spool.colorFinish === 'silk';
+  const bgStyle = getSpoolBackground(spool);
+  const cardBorderStyle = getSpoolCardBorder(spool);
 
   return `
     <article class="filament-card" id="card-${spool.id}" 
-      style="border-top-color: ${filamentColor}; box-shadow: 0 4px 18px ${filamentColor}22;">
+      style="${cardBorderStyle}">
       
-      <!-- Top Row: Material Badge, Name & Actions -->
+      <!-- Top Row: Material Badge, Name, Tags & Actions -->
       <div class="card-top">
         <div class="card-title-col">
           <span class="badge-mat">${escapeHtml(spool.material)}</span>
+          ${isDual ? '<span class="badge-tag badge-dual">Dual</span>' : ''}
+          ${isSilk ? '<span class="badge-tag badge-silk">✨ Silk</span>' : ''}
           <h3 class="card-name" title="${escapeHtml(spool.name)}">${escapeHtml(spool.name)}</h3>
         </div>
 
@@ -348,9 +390,9 @@ function createCardHtml(spool) {
       <!-- Center: Giant Tank Container Graphic -->
       <div class="tank-wrap">
         <div class="tank-container">
-          <div class="tank-fill ${isFull ? 'full' : ''}" 
+          <div class="tank-fill ${isFull ? 'full' : ''} ${isSilk ? 'silk-shimmer' : ''}" 
                id="tank-fill-${spool.id}" 
-               style="width: ${percent}%; background-color: ${filamentColor};">
+               style="width: ${percent}%; background: ${bgStyle};">
           </div>
           <span class="tank-percent-label" id="tank-percent-${spool.id}">
             ${percent}%
@@ -425,7 +467,7 @@ function handleSliderChange(id, value) {
     numInput.value = percent;
   }
 
-  updateTankVisual(id, percent, target.color);
+  updateTankVisual(id, percent, target);
 
   // Sync to Firestore
   if (isCloudActive && db) {
@@ -460,7 +502,7 @@ function handleNumInputChange(id, value) {
     slider.value = percent;
   }
 
-  updateTankVisual(id, percent, target.color);
+  updateTankVisual(id, percent, target);
 
   // Sync to Firestore
   if (isCloudActive && db) {
@@ -493,7 +535,7 @@ function stepPercent(id, delta) {
   const numInput = document.getElementById(`num-input-${id}`);
   if (numInput) numInput.value = newPercent;
 
-  updateTankVisual(id, newPercent, target.color);
+  updateTankVisual(id, newPercent, target);
 
   if (isCloudActive && db) {
     db.collection('spools').doc(id).set(target, { merge: true }).catch(err => {
@@ -579,13 +621,24 @@ document.addEventListener('pointerdown', (e) => {
   }
 }, { passive: true });
 
-function updateTankVisual(id, percent, color) {
+function updateTankVisual(id, percent, spoolOrColor) {
   const fillEl = document.getElementById(`tank-fill-${id}`);
   const labelEl = document.getElementById(`tank-percent-${id}`);
 
   if (fillEl) {
     fillEl.style.width = `${percent}%`;
-    if (color) fillEl.style.backgroundColor = color;
+    if (spoolOrColor) {
+      if (typeof spoolOrColor === 'object') {
+        fillEl.style.background = getSpoolBackground(spoolOrColor);
+        if (spoolOrColor.colorFinish === 'silk') {
+          fillEl.classList.add('silk-shimmer');
+        } else {
+          fillEl.classList.remove('silk-shimmer');
+        }
+      } else {
+        fillEl.style.background = spoolOrColor;
+      }
+    }
     if (percent >= 100) {
       fillEl.classList.add('full');
     } else {
@@ -599,26 +652,97 @@ function updateTankVisual(id, percent, color) {
 }
 
 /**
- * Modal Handling (Add / Edit)
+ * Modal Handling (Add / Edit) with Dual Color & Silk (Shiny) Modes
  */
 const modal = document.getElementById('spool-modal');
 const form = document.getElementById('spool-form');
 const modalTitle = document.getElementById('modal-title');
-const colorPicker = document.getElementById('form-color-picker');
 const formPercent = document.getElementById('form-percent');
 const modalTankFill = document.getElementById('modal-tank-fill');
 const modalTankPercentText = document.getElementById('modal-tank-percent-text');
 const modalFormPercentNum = document.getElementById('modal-form-percent-num');
 
+// Color Mode Elements
+let currentModalColorMode = 'solid'; // 'solid' | 'dual'
+let currentModalColorFinish = 'standard'; // 'standard' | 'silk'
+
+const solidColorWrap = document.getElementById('solid-color-wrap');
+const dualColorWrap = document.getElementById('dual-color-wrap');
+const solidSwatchesSection = document.getElementById('solid-swatches-section');
+const dualSwatchesSection = document.getElementById('dual-swatches-section');
+const solidColorPicker = document.getElementById('form-color-picker');
+const dualColorPicker1 = document.getElementById('form-color-picker-1');
+const dualColorPicker2 = document.getElementById('form-color-picker-2');
+const colorHex1 = document.getElementById('color-hex-1');
+const colorHexDual1 = document.getElementById('color-hex-dual-1');
+const colorHexDual2 = document.getElementById('color-hex-dual-2');
+
+function setModalColorMode(mode) {
+  currentModalColorMode = mode;
+  document.querySelectorAll('#color-mode-selector .mode-pill-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+  });
+
+  if (mode === 'dual') {
+    if (solidColorWrap) solidColorWrap.style.display = 'none';
+    if (dualColorWrap) dualColorWrap.style.display = 'block';
+    if (solidSwatchesSection) solidSwatchesSection.style.display = 'none';
+    if (dualSwatchesSection) dualSwatchesSection.style.display = 'flex';
+  } else {
+    if (solidColorWrap) solidColorWrap.style.display = 'block';
+    if (dualColorWrap) dualColorWrap.style.display = 'none';
+    if (solidSwatchesSection) solidSwatchesSection.style.display = 'flex';
+    if (dualSwatchesSection) dualSwatchesSection.style.display = 'none';
+  }
+
+  updateModalTankPreview();
+}
+
+function setModalColorFinish(finish) {
+  currentModalColorFinish = finish;
+  document.querySelectorAll('#color-finish-selector .mode-pill-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-finish') === finish);
+  });
+
+  updateModalTankPreview();
+}
+
+function swapModalColors() {
+  if (dualColorPicker1 && dualColorPicker2) {
+    const temp = dualColorPicker1.value;
+    dualColorPicker1.value = dualColorPicker2.value;
+    dualColorPicker2.value = temp;
+    updateModalTankPreview();
+  }
+}
+
 function updateModalTankPreview() {
   const val = formPercent.value;
-  const col = colorPicker.value;
   modalTankFill.style.width = `${val}%`;
-  modalTankFill.style.backgroundColor = col;
   modalTankPercentText.textContent = `${val}%`;
 
   if (modalFormPercentNum && modalFormPercentNum.value != val) {
     modalFormPercentNum.value = val;
+  }
+
+  // Color & Finish Preview
+  if (currentModalColorMode === 'dual') {
+    const c1 = dualColorPicker1 ? dualColorPicker1.value : '#2563eb';
+    const c2 = dualColorPicker2 ? dualColorPicker2.value : '#9333ea';
+    modalTankFill.style.background = `linear-gradient(90deg, ${c1} 0%, ${c1} 49%, ${c2} 51%, ${c2} 100%)`;
+    if (colorHexDual1) colorHexDual1.textContent = c1;
+    if (colorHexDual2) colorHexDual2.textContent = c2;
+  } else {
+    const c1 = solidColorPicker ? solidColorPicker.value : '#dc2626';
+    modalTankFill.style.background = c1;
+    if (colorHex1) colorHex1.textContent = c1;
+  }
+
+  // Silk Shimmer Class
+  if (currentModalColorFinish === 'silk') {
+    modalTankFill.classList.add('silk-shimmer');
+  } else {
+    modalTankFill.classList.remove('silk-shimmer');
   }
 }
 
@@ -626,8 +750,14 @@ function openAddModal() {
   form.reset();
   document.getElementById('spool-id').value = '';
   modalTitle.textContent = 'Tambah Filamen';
-  
-  colorPicker.value = '#dc2626';
+
+  if (solidColorPicker) solidColorPicker.value = '#dc2626';
+  if (dualColorPicker1) dualColorPicker1.value = '#2563eb';
+  if (dualColorPicker2) dualColorPicker2.value = '#9333ea';
+
+  setModalColorMode('solid');
+  setModalColorFinish('standard');
+
   formPercent.value = 100;
   if (modalFormPercentNum) modalFormPercentNum.value = 100;
   document.getElementById('form-material').value = 'PLA+ 2.0';
@@ -646,7 +776,20 @@ function openEditModal(id) {
 
   document.getElementById('form-name').value = target.name || '';
   document.getElementById('form-material').value = target.material || 'PLA+ 2.0';
-  colorPicker.value = target.color || '#dc2626';
+
+  const mode = target.colorMode || 'solid';
+  const finish = target.colorFinish || 'standard';
+
+  if (mode === 'dual') {
+    if (dualColorPicker1) dualColorPicker1.value = target.color || '#2563eb';
+    if (dualColorPicker2) dualColorPicker2.value = target.color2 || '#9333ea';
+  } else {
+    if (solidColorPicker) solidColorPicker.value = target.color || '#dc2626';
+  }
+
+  setModalColorMode(mode);
+  setModalColorFinish(finish);
+
   const pct = target.percent !== undefined ? target.percent : 100;
   formPercent.value = pct;
   if (modalFormPercentNum) modalFormPercentNum.value = pct;
@@ -659,7 +802,10 @@ function closeModal() {
   modal.style.display = 'none';
 }
 
-colorPicker.addEventListener('input', updateModalTankPreview);
+// Color and percent input listeners
+if (solidColorPicker) solidColorPicker.addEventListener('input', updateModalTankPreview);
+if (dualColorPicker1) dualColorPicker1.addEventListener('input', updateModalTankPreview);
+if (dualColorPicker2) dualColorPicker2.addEventListener('input', updateModalTankPreview);
 formPercent.addEventListener('input', updateModalTankPreview);
 
 if (modalFormPercentNum) {
@@ -672,6 +818,7 @@ if (modalFormPercentNum) {
   });
 }
 
+// Quick percent pills
 document.querySelectorAll('.btn-pill').forEach(btn => {
   btn.addEventListener('click', () => {
     formPercent.value = btn.getAttribute('data-val');
@@ -679,13 +826,44 @@ document.querySelectorAll('.btn-pill').forEach(btn => {
   });
 });
 
+// Solid color swatches
 document.querySelectorAll('.swatch-item').forEach(btn => {
   btn.addEventListener('click', () => {
     const col = btn.getAttribute('data-color');
-    colorPicker.value = col;
+    if (solidColorPicker) solidColorPicker.value = col;
     updateModalTankPreview();
   });
 });
+
+// Dual color split swatches
+document.querySelectorAll('.swatch-dual-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const c1 = btn.getAttribute('data-c1');
+    const c2 = btn.getAttribute('data-c2');
+    if (dualColorPicker1) dualColorPicker1.value = c1;
+    if (dualColorPicker2) dualColorPicker2.value = c2;
+    updateModalTankPreview();
+  });
+});
+
+// Mode & Finish buttons
+document.querySelectorAll('#color-mode-selector .mode-pill-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setModalColorMode(btn.getAttribute('data-mode'));
+  });
+});
+
+document.querySelectorAll('#color-finish-selector .mode-pill-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setModalColorFinish(btn.getAttribute('data-finish'));
+  });
+});
+
+// Swap colors button
+const swapBtn = document.getElementById('btn-swap-colors');
+if (swapBtn) {
+  swapBtn.addEventListener('click', swapModalColors);
+}
 
 // Save Form
 form.addEventListener('submit', async (e) => {
@@ -694,8 +872,19 @@ form.addEventListener('submit', async (e) => {
   const id = document.getElementById('spool-id').value;
   const name = document.getElementById('form-name').value.trim();
   const material = document.getElementById('form-material').value;
-  const color = colorPicker.value;
   const percent = parseInt(formPercent.value, 10);
+
+  const colorMode = currentModalColorMode;
+  const colorFinish = currentModalColorFinish;
+  let color = '#dc2626';
+  let color2 = '';
+
+  if (colorMode === 'dual') {
+    color = dualColorPicker1 ? dualColorPicker1.value : '#2563eb';
+    color2 = dualColorPicker2 ? dualColorPicker2.value : '#9333ea';
+  } else {
+    color = solidColorPicker ? solidColorPicker.value : '#dc2626';
+  }
 
   if (id) {
     // Edit existing
@@ -704,6 +893,9 @@ form.addEventListener('submit', async (e) => {
       item.name = name;
       item.material = material;
       item.color = color;
+      item.color2 = color2;
+      item.colorMode = colorMode;
+      item.colorFinish = colorFinish;
       item.percent = percent;
       item.updatedAt = Date.now();
       saveLocalData();
@@ -720,6 +912,9 @@ form.addEventListener('submit', async (e) => {
       name,
       material,
       color,
+      color2,
+      colorMode,
+      colorFinish,
       percent,
       updatedAt: Date.now()
     };

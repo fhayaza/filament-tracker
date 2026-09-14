@@ -164,38 +164,109 @@
           </div>
         </div>
 
-        <!-- Color Picker Section -->
+        <!-- Color Mode & Selection Section -->
         <div class="field-group">
-          <label>Pilih Warna Filamen</label>
-          <div class="color-picker-pure">
-            <input type="color" id="form-color-picker" value="#dc2626" title="Klik untuk pilih warna bebas">
-            <span class="color-hint-text">Klik kotak warna untuk pilih warna bebas atau klik swatch:</span>
+          <div class="color-mode-header">
+            <label>Mode & Warna Filamen</label>
           </div>
 
-          <!-- Swatches Cepat -->
-          <div class="swatches-wrap">
-            <button type="button" class="swatch-item" data-color="#dc2626" style="background:#dc2626;"
-              title="Merah"></button>
-            <button type="button" class="swatch-item" data-color="#f59e0b" style="background:#f59e0b;"
-              title="Kuning"></button>
-            <button type="button" class="swatch-item" data-color="#18181b" style="background:#18181b;"
-              title="Hitam"></button>
-            <button type="button" class="swatch-item" data-color="#f8fafc" style="background:#f8fafc;"
-              title="Putih"></button>
-            <button type="button" class="swatch-item" data-color="#64748b" style="background:#64748b;"
-              title="Abu-abu"></button>
-            <button type="button" class="swatch-item" data-color="#2563eb" style="background:#2563eb;"
-              title="Biru"></button>
-            <button type="button" class="swatch-item" data-color="#16a34a" style="background:#16a34a;"
-              title="Hijau"></button>
-            <button type="button" class="swatch-item" data-color="#ea580c" style="background:#ea580c;"
-              title="Oranye"></button>
-            <button type="button" class="swatch-item" data-color="#9333ea" style="background:#9333ea;"
-              title="Ungu"></button>
-            <button type="button" class="swatch-item" data-color="#06b6d4" style="background:#06b6d4;"
-              title="Cyan / Teal"></button>
-            <button type="button" class="swatch-item" data-color="#cbd5e1"
-              style="background:rgba(255,255,255,0.4); border: 1px dashed #94a3b8;" title="Transparan"></button>
+          <!-- Pilihan Mode: Solid vs Dual Color & Efek: Biasa vs Silk -->
+          <div class="color-options-row">
+            <!-- Selector Mode Warna -->
+            <div class="color-mode-toggle-group">
+              <span class="sub-label">Mode:</span>
+              <div class="mode-pill-group" id="color-mode-selector">
+                <button type="button" class="mode-pill-btn active" data-mode="solid" id="btn-mode-solid">
+                  <span>🎨 Solid</span>
+                </button>
+                <button type="button" class="mode-pill-btn" data-mode="dual" id="btn-mode-dual">
+                  <span>🎭 Dual Color</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Selector Efek Kilau / Finish -->
+            <div class="color-finish-toggle-group">
+              <span class="sub-label">Tampilan:</span>
+              <div class="mode-pill-group" id="color-finish-selector">
+                <button type="button" class="mode-pill-btn active" data-finish="standard" id="btn-finish-standard">
+                  <span>Standard</span>
+                </button>
+                <button type="button" class="mode-pill-btn" data-finish="silk" id="btn-finish-silk">
+                  <span>✨ Silk (Shiny)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Solid Color Picker Inputs -->
+          <div class="color-picker-container" id="solid-color-wrap">
+            <div class="color-input-single">
+              <input type="color" id="form-color-picker" value="#dc2626" title="Klik untuk pilih warna bebas">
+              <div class="color-text-info">
+                <span class="color-hex-val" id="color-hex-1">#dc2626</span>
+                <span class="color-hint-sub">Warna Utama</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual Color Picker Inputs (Tersembunyi jika mode Solid) -->
+          <div class="color-picker-container dual-picker-wrap" id="dual-color-wrap" style="display:none;">
+            <div class="dual-picker-box">
+              <div class="picker-half">
+                <label class="half-label">Warna 1 (Primer)</label>
+                <div class="picker-input-inline">
+                  <input type="color" id="form-color-picker-1" value="#2563eb" title="Warna Primer">
+                  <span class="color-hex-val" id="color-hex-dual-1">#2563eb</span>
+                </div>
+              </div>
+
+              <button type="button" class="btn-swap-colors" id="btn-swap-colors" title="Tukar posisi Warna 1 & Warna 2">
+                ⇄
+              </button>
+
+              <div class="picker-half">
+                <label class="half-label">Warna 2 (Sekunder)</label>
+                <div class="picker-input-inline">
+                  <input type="color" id="form-color-picker-2" value="#9333ea" title="Warna Sekunder">
+                  <span class="color-hex-val" id="color-hex-dual-2">#9333ea</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Swatches Cepat Solid -->
+          <div class="swatches-section" id="solid-swatches-section">
+            <span class="swatches-label" id="solid-swatches-label">Pilihan Cepat Warna Populer:</span>
+            <div class="swatches-wrap" id="solid-swatches-wrap">
+              <button type="button" class="swatch-item" data-color="#dc2626" style="background:#dc2626;" title="Merah"></button>
+              <button type="button" class="swatch-item" data-color="#f59e0b" style="background:#f59e0b;" title="Kuning / Gold"></button>
+              <button type="button" class="swatch-item" data-color="#18181b" style="background:#18181b;" title="Hitam"></button>
+              <button type="button" class="swatch-item" data-color="#f8fafc" style="background:#f8fafc;" title="Putih"></button>
+              <button type="button" class="swatch-item" data-color="#64748b" style="background:#64748b;" title="Abu-abu / Silver"></button>
+              <button type="button" class="swatch-item" data-color="#2563eb" style="background:#2563eb;" title="Biru"></button>
+              <button type="button" class="swatch-item" data-color="#16a34a" style="background:#16a34a;" title="Hijau"></button>
+              <button type="button" class="swatch-item" data-color="#ea580c" style="background:#ea580c;" title="Oranye"></button>
+              <button type="button" class="swatch-item" data-color="#9333ea" style="background:#9333ea;" title="Ungu"></button>
+              <button type="button" class="swatch-item" data-color="#06b6d4" style="background:#06b6d4;" title="Cyan / Teal"></button>
+              <button type="button" class="swatch-item" data-color="#cbd5e1" style="background:rgba(255,255,255,0.4); border: 1px dashed #94a3b8;" title="Transparan"></button>
+            </div>
+          </div>
+
+          <!-- Swatches Cepat Dual Color (Terbelah 50/50) -->
+          <div class="swatches-section" id="dual-swatches-section" style="display:none;">
+            <span class="swatches-label">Preset Dual Color Populer (Co-extrusion):</span>
+            <div class="swatches-wrap dual-swatches-wrap">
+              <button type="button" class="swatch-dual-item" data-c1="#d97706" data-c2="#18181b" style="background: linear-gradient(135deg, #d97706 50%, #18181b 50%);" title="Gold / Black"></button>
+              <button type="button" class="swatch-dual-item" data-c1="#2563eb" data-c2="#9333ea" style="background: linear-gradient(135deg, #2563eb 50%, #9333ea 50%);" title="Blue / Purple"></button>
+              <button type="button" class="swatch-dual-item" data-c1="#dc2626" data-c2="#eab308" style="background: linear-gradient(135deg, #dc2626 50%, #eab308 50%);" title="Red / Gold"></button>
+              <button type="button" class="swatch-dual-item" data-c1="#ec4899" data-c2="#06b6d4" style="background: linear-gradient(135deg, #ec4899 50%, #06b6d4 50%);" title="Pink / Cyan"></button>
+              <button type="button" class="swatch-dual-item" data-c1="#10b981" data-c2="#1d4ed8" style="background: linear-gradient(135deg, #10b981 50%, #1d4ed8 50%);" title="Green / Blue"></button>
+              <button type="button" class="swatch-dual-item" data-c1="#cbd5e1" data-c2="#0f172a" style="background: linear-gradient(135deg, #cbd5e1 50%, #0f172a 50%);" title="Silver / Black"></button>
+              <button type="button" class="swatch-dual-item" data-c1="#dc2626" data-c2="#18181b" style="background: linear-gradient(135deg, #dc2626 50%, #18181b 50%);" title="Red / Black"></button>
+              <button type="button" class="swatch-dual-item" data-c1="#7c3aed" data-c2="#f59e0b" style="background: linear-gradient(135deg, #7c3aed 50%, #f59e0b 50%);" title="Purple / Gold"></button>
+              <button type="button" class="swatch-dual-item" data-c1="#b45309" data-c2="#047857" style="background: linear-gradient(135deg, #b45309 50%, #047857 50%);" title="Copper / Emerald"></button>
+            </div>
           </div>
         </div>
 

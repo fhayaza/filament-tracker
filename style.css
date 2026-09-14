@@ -508,6 +508,32 @@ body {
   flex-shrink: 0;
 }
 
+.badge-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.2;
+}
+
+.badge-dual {
+  background: rgba(168, 85, 247, 0.18);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.badge-silk {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(236, 72, 153, 0.2));
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+}
+
 .card-name {
   font-family: var(--font-heading);
   font-size: 17px;
@@ -587,6 +613,42 @@ body {
 
 .tank-fill.full {
   border-right: none;
+}
+
+/* Efek Sutra Mengkilap: Silk (Shiny) Shimmer Effect */
+.tank-fill.silk-shimmer,
+.modal-tank-fill.silk-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.tank-fill.silk-shimmer::after,
+.modal-tank-fill.silk-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.48) 0%,
+    rgba(255, 255, 255, 0.12) 22%,
+    transparent 42%,
+    rgba(255, 255, 255, 0.38) 68%,
+    transparent 88%
+  );
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  animation: silkSheenAnim 4s ease-in-out infinite alternate;
+}
+
+@keyframes silkSheenAnim {
+  0% {
+    opacity: 0.75;
+    filter: brightness(1);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1.2);
+  }
 }
 
 /* Label Persentase Besar & Kontras Tinggi */
@@ -1023,53 +1085,229 @@ body {
   border-color: var(--border-focus);
 }
 
-/* Color Picker Section */
-.color-picker-pure {
+/* ==========================================================================
+   Color Mode & Finish Selection in Modal
+   ========================================================================== */
+.color-mode-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
-  /* FIX */
 }
 
-.color-picker-pure input[type="color"] {
-  appearance: none;
+.color-options-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+}
+
+.color-mode-toggle-group,
+.color-finish-toggle-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.sub-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.mode-pill-group {
+  display: inline-flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  gap: 2px;
+}
+
+.mode-pill-btn {
+  background: transparent;
   border: none;
-  width: 52px;
-  height: 42px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.mode-pill-btn:hover {
+  color: var(--text-primary);
+}
+
+.mode-pill-btn.active {
+  background: var(--color-brand);
+  color: #0b0f19;
+  font-weight: 700;
+  box-shadow: 0 1px 6px rgba(56, 189, 248, 0.35);
+}
+
+/* Single Color Picker */
+.color-picker-container {
+  margin-top: 2px;
+}
+
+.color-input-single {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+}
+
+.color-input-single input[type="color"] {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  width: 44px;
+  height: 36px;
+  border-radius: 6px;
   cursor: pointer;
   background: none;
   flex-shrink: 0;
 }
 
-.color-picker-pure input[type="color"]::-webkit-color-swatch-wrapper {
+.color-input-single input[type="color"]::-webkit-color-swatch-wrapper {
   padding: 0;
 }
 
-.color-picker-pure input[type="color"]::-webkit-color-swatch {
+.color-input-single input[type="color"]::-webkit-color-swatch {
   border: 2px solid var(--border-light);
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
 }
 
-.color-hint-text {
-  font-size: 11px;
+.color-text-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.color-hex-val {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.color-hint-sub {
+  font-size: 10px;
   color: var(--text-muted);
-  line-height: 1.3;
+}
+
+/* Dual Color Picker Box */
+.dual-picker-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+}
+
+.picker-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
-  /* FIX */
+}
+
+.half-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.picker-input-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.picker-input-inline input[type="color"] {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  width: 38px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+
+.picker-input-inline input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.picker-input-inline input[type="color"]::-webkit-color-swatch {
+  border: 2px solid var(--border-light);
+  border-radius: 6px;
+}
+
+.btn-swap-colors {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: bold;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-swap-colors:hover {
+  background: var(--color-brand);
+  color: #0b0f19;
+  border-color: var(--color-brand);
+  transform: rotate(180deg);
+}
+
+/* Swatches */
+.swatches-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.swatches-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .swatches-wrap {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 7px;
 }
 
 .swatch-item {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--radius-pill);
   border: 2px solid transparent;
   cursor: pointer;
@@ -1077,9 +1315,29 @@ body {
   touch-action: manipulation;
 }
 
-.swatch-item:hover {
+.swatch-item:hover,
+.swatch-item:active {
   transform: scale(1.2);
   border-color: var(--text-primary);
+}
+
+/* Dual Color Split Swatch (50:50) */
+.swatch-dual-item {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--border-light);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.swatch-dual-item:hover,
+.swatch-dual-item:active {
+  transform: scale(1.22);
+  border-color: var(--text-primary);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
 
 /* Modal Tank Preview */
