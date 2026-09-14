@@ -1,6 +1,7 @@
 /* ==========================================================================
    Filament Tracker — Modern, Responsive & Dominant Container Widget UI
    Optimized for Mobile, Tablet, and Desktop Screens
+   (FIX: overflow tepi kanan di layar sempit / Samsung A06)
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -65,6 +66,13 @@
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* FIX: cegah "font boosting" Samsung Internet yang memperbesar teks
+   dan memaksa layout melebihi lebar layar */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Global Reset */
 *,
 *::before,
@@ -77,7 +85,9 @@
 
 html,
 body {
+  /* FIX: 'clip' lebih ketat dari 'hidden' & tidak membuat scroll container */
   overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
   max-width: 100%;
 }
@@ -101,6 +111,8 @@ body {
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  min-width: 0;
+  /* FIX: izinkan flex child menyusut */
 }
 
 /* ==========================================================================
@@ -113,6 +125,8 @@ body {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border-light);
   width: 100%;
+  min-width: 0;
+  /* FIX */
 }
 
 .header-top-row {
@@ -121,13 +135,17 @@ body {
   align-items: center;
   width: 100%;
   gap: 10px;
+  min-width: 0;
+  /* FIX */
 }
 
 .header-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  /* FIX: boleh menyusut, bukan 0 */
+  min-width: 0;
 }
 
 .brand-badge {
@@ -150,6 +168,9 @@ body {
   letter-spacing: -0.02em;
   color: var(--text-primary);
   line-height: 1.2;
+  overflow: hidden;
+  /* FIX: aman jika ruang sangat sempit */
+  text-overflow: ellipsis;
 }
 
 .brand-tagline {
@@ -169,10 +190,14 @@ body {
   align-items: center;
   gap: 10px;
   width: 100%;
+  min-width: 0;
+  /* FIX */
 }
 
 .btn-add-main {
   flex: 1;
+  min-width: 0;
+  /* FIX: tombol utama boleh menyusut */
   min-height: 42px;
   font-size: 14px;
   font-weight: 700;
@@ -182,6 +207,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .btn-icon-text {
@@ -313,6 +339,8 @@ body {
   flex-direction: column;
   gap: 12px;
   width: 100%;
+  min-width: 0;
+  /* FIX */
 }
 
 @media (min-width: 768px) {
@@ -328,6 +356,8 @@ body {
   flex: 1;
   max-width: 380px;
   width: 100%;
+  min-width: 0;
+  /* FIX */
 }
 
 .search-icon {
@@ -411,6 +441,8 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
   width: 100%;
+  min-width: 0;
+  /* FIX */
 }
 
 .filament-card {
@@ -427,6 +459,8 @@ body {
   box-shadow: var(--shadow-card);
   position: relative;
   width: 100%;
+  min-width: 0;
+  /* FIX */
 }
 
 .filament-card:hover {
@@ -440,6 +474,8 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  /* FIX */
 }
 
 .card-title-col {
@@ -513,6 +549,8 @@ body {
   flex-direction: column;
   align-items: center;
   width: 100%;
+  min-width: 0;
+  /* FIX */
 }
 
 .tank-container {
@@ -574,6 +612,8 @@ body {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: 10px 12px;
+  min-width: 0;
+  /* FIX */
 }
 
 .slider-info-row {
@@ -581,6 +621,8 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  /* FIX */
 }
 
 .slider-nominal-group {
@@ -623,7 +665,7 @@ body {
   font-weight: 700;
   text-align: right;
   padding: 3px 2px;
-  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .percent-num-input::-webkit-outer-spin-button,
@@ -643,6 +685,8 @@ body {
 .quick-steps-bar {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
+  /* FIX: boleh turun baris di layar sempit */
 }
 
 .step-btn {
@@ -669,15 +713,19 @@ body {
 .styled-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 100%;
-  height: 38px; /* Generous touch area for fingers */
+  /* FIX: padding + margin negatif = ruang bagi thumb 32px di ujung 0% & 100%,
+     sehingga thumb tidak pernah menonjol keluar dan memotong tepi layar */
+  width: calc(100% + 32px);
+  margin: 0 -16px;
+  padding: 0 16px;
+  height: 38px;
+  /* Generous touch area for fingers */
   background: transparent;
   outline: none;
   cursor: pointer;
-  touch-action: none !important; /* CRITICAL: prevents browser scroll from interrupting sliding */
+  touch-action: none !important;
+  /* CRITICAL: prevents browser scroll from interrupting sliding */
   -webkit-tap-highlight-color: transparent;
-  margin: 0;
-  padding: 0;
   display: block;
   user-select: none;
 }
@@ -708,7 +756,8 @@ body {
   border: 3.5px solid #0284c7;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 10px rgba(56, 189, 248, 0.6);
   cursor: pointer;
-  margin-top: -11px; /* (10px - 32px) / 2 = -11px */
+  margin-top: -11px;
+  /* (10px - 32px) / 2 = -11px */
   transition: transform 0.1s ease;
 }
 
@@ -767,6 +816,8 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  /* FIX */
 }
 
 .modal-header {
@@ -776,6 +827,8 @@ body {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
+  gap: 8px;
+  /* FIX */
 }
 
 .modal-header h2 {
@@ -783,6 +836,10 @@ body {
   font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
+  min-width: 0;
+  /* FIX */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn-close-modal {
@@ -793,6 +850,7 @@ body {
   cursor: pointer;
   padding: 4px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .btn-close-modal:hover {
@@ -805,26 +863,38 @@ body {
   flex-direction: column;
   gap: 14px;
   overflow-y: auto;
+  overflow-x: hidden;
+  /* FIX: jangan biarkan konten modal overflow ke samping */
   -webkit-overflow-scrolling: touch;
+  min-width: 0;
+  /* FIX */
 }
 
 .field-row {
   display: flex;
   gap: 12px;
+  min-width: 0;
+  /* FIX */
 }
 
 .field-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  /* FIX */
 }
 
 .flex-1 {
   flex: 1;
+  min-width: 0;
+  /* FIX */
 }
 
 .flex-2 {
   flex: 2;
+  min-width: 0;
+  /* FIX */
 }
 
 .field-group label {
@@ -835,6 +905,8 @@ body {
 
 .field-group input[type="text"],
 .field-group select {
+  width: 100%;
+  /* FIX: pastikan select tidak melebihi kolom */
   background: var(--bg-input);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
@@ -857,6 +929,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  /* FIX */
 }
 
 .color-picker-pure input[type="color"] {
@@ -883,6 +957,8 @@ body {
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.3;
+  min-width: 0;
+  /* FIX */
 }
 
 .swatches-wrap {
@@ -912,6 +988,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  /* FIX */
+  min-width: 0;
+  /* FIX */
 }
 
 .modal-percent-input-wrap {
@@ -922,6 +1002,7 @@ body {
   border-radius: var(--radius-sm);
   padding: 1px 6px;
   transition: border-color 0.2s;
+  flex-shrink: 0;
 }
 
 .modal-percent-input-wrap:focus-within {
@@ -930,6 +1011,8 @@ body {
 
 .modal-tank-preview {
   margin: 4px 0;
+  min-width: 0;
+  /* FIX */
 }
 
 .modal-tank {
@@ -1026,6 +1109,10 @@ body {
   border-left-width: 4px;
   animation: slideIn 0.2s ease-out;
   pointer-events: auto;
+  max-width: 100%;
+  /* FIX */
+  overflow-wrap: break-word;
+  /* FIX */
 }
 
 @keyframes slideIn {
@@ -1055,7 +1142,7 @@ body {
   }
 
   .cards-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
     gap: 14px;
   }
 }
@@ -1250,5 +1337,26 @@ body {
   .modal-actions .btn {
     min-height: 42px;
     font-size: 14px;
+  }
+}
+
+/* FIX: layar sangat sempit (<= 400px, mis. Samsung A06) —
+   Backup/Import jadi icon-only agar baris tombol tidak pernah overflow */
+@media (max-width: 400px) {
+  .btn-icon-text span {
+    display: none;
+  }
+
+  .btn-icon-text {
+    padding: 6px 8px;
+  }
+
+  .brand-title {
+    font-size: 16px;
+  }
+
+  .btn-add-main {
+    font-size: 12px;
+    padding: 8px 8px;
   }
 }
