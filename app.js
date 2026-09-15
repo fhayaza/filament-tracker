@@ -341,7 +341,8 @@ function getSpoolBackground(spool) {
   const c1 = spool.color || '#dc2626';
   if (spool.colorMode === 'dual' && spool.color2) {
     const c2 = spool.color2;
-    return `linear-gradient(90deg, ${c1} 0%, ${c1} 49%, ${c2} 51%, ${c2} 100%)`;
+    // Gradasi horizontal (atas ke bawah): Warna 1 di atas, Warna 2 di bawah, transisi lembut di tengah
+    return `linear-gradient(180deg, ${c1} 0%, ${c1} 36%, ${c2} 64%, ${c2} 100%)`;
   }
   return c1;
 }
@@ -729,7 +730,7 @@ function updateModalTankPreview() {
   if (currentModalColorMode === 'dual') {
     const c1 = dualColorPicker1 ? dualColorPicker1.value : '#2563eb';
     const c2 = dualColorPicker2 ? dualColorPicker2.value : '#9333ea';
-    modalTankFill.style.background = `linear-gradient(90deg, ${c1} 0%, ${c1} 49%, ${c2} 51%, ${c2} 100%)`;
+    modalTankFill.style.background = `linear-gradient(180deg, ${c1} 0%, ${c1} 36%, ${c2} 64%, ${c2} 100%)`;
     if (colorHexDual1) colorHexDual1.textContent = c1;
     if (colorHexDual2) colorHexDual2.textContent = c2;
   } else {
