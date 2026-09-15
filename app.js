@@ -279,16 +279,105 @@ function renderApp() {
   setupSliderTouchEnhancements();
 }
 
-// Slider Lock State (Anti-Kepencet Saat Scroll)
+// Slider Lock & Undo State Management (Anti-Kepencet & Riwayat Perubahan)
 let activeUnlockedSpoolId = null;
 let sliderAutoLockTimer = null;
+const editingInitialValues = {}; // id -> percent awal sebelum diubah
+
+function startEditingSession(id) {
+  if (editingInitialValues[id] === undefined) {
+    const target = spools.find(s => s.id === id);
+    if (target) {
+      editingInitialValues[id] = target.percent;
+    }
+  }
+}
+
+function updateUndoButton(id) {
+  const undoBtn = document.getElementById(`undo-btn-${id}`);
+  if (!undoBtn) return;
+
+  const target = spools.find(s => s.id === id);
+  const initialVal = editingInitialValues[id];
+
+  if (target && initialVal !== undefined && target.percent !== initialVal) {
+    undoBtn.style.display = 'inline-flex';
+    undoBtn.title = `Batal perubahan (Kembalikan ke ${initialVal}%)`;
+    const labelSpan = undoBtn.querySelector('span');
+    if (labelSpan) labelSpan.textContent = `Undo (${initialVal}%)`;
+  } else {
+    undoBtn.style.display = 'none';
+  }
+}
+
+function undoSpoolChange(id) {
+  const initialVal = editingInitialValues[id];
+  if (initialVal === undefined) return;
+
+  const target = spools.find(s => s.id === id);
+  if (!target) return;
+
+  target.percent = initialVal;
+  target.updatedAt = Date.now();
+  saveLocalData();
+
+  // Sinkronisasi visual slider & input angka
+  const slider = document.getElementById(`slider-${id}`);
+  if (slider) slider.value = initialVal;
+
+  const numInput = document.getElementById(`num-input-${id}`);
+  if (numInput) numInput.value = initialVal;
+
+  updateTankVisual(id, initialVal, target);
+
+  // Sync segera ke Firestore
+  if (isCloudActive && db) {
+    if (sliderDebounceTimers[id]) clearTimeout(sliderDebounceTimers[id]);
+    db.collection('spools').doc(id).set(target, { merge: true }).catch(err => {
+      console.error('Failed to sync undo to Firestore:', err);
+    });
+  }
+
+  delete editingInitialValues[id];
+  updateUndoButton(id);
+  showToast(`Perubahan dibatalkan, kembali ke ${initialVal}%`);
+}
+
+function commitAndSaveSpool(id) {
+  const target = spools.find(s => s.id === id);
+  if (!target) return;
+
+  // Flush Firestore debounce segera
+  if (isCloudActive && db) {
+    if (sliderDebounceTimers[id]) {
+      clearTimeout(sliderDebounceTimers[id]);
+      delete sliderDebounceTimers[id];
+    }
+    db.collection('spools').doc(id).set(target, { merge: true }).catch(err => {
+      console.error('Failed to save spool to Firestore:', err);
+    });
+  }
+
+  const hadChanges = editingInitialValues[id] !== undefined && editingInitialValues[id] !== target.percent;
+  delete editingInitialValues[id];
+
+  const undoBtn = document.getElementById(`undo-btn-${id}`);
+  if (undoBtn) undoBtn.style.display = 'none';
+
+  lockSlider(id);
+
+  if (hadChanges) {
+    showToast(`Tersimpan: ${target.percent}%`);
+  }
+}
 
 function unlockSlider(id) {
   if (activeUnlockedSpoolId && activeUnlockedSpoolId !== id) {
-    lockSlider(activeUnlockedSpoolId);
+    commitAndSaveSpool(activeUnlockedSpoolId);
   }
 
   activeUnlockedSpoolId = id;
+  startEditingSession(id);
   const guard = document.getElementById(`guard-${id}`);
   const lockIcon = document.getElementById(`lock-icon-${id}`);
   const lockBtn = document.getElementById(`lock-btn-${id}`);
@@ -324,7 +413,7 @@ function lockSlider(id) {
 
 function toggleSliderLock(id) {
   if (activeUnlockedSpoolId === id) {
-    lockSlider(id);
+    commitAndSaveSpool(id);
   } else {
     unlockSlider(id);
   }
@@ -333,8 +422,8 @@ function toggleSliderLock(id) {
 function resetAutoLockTimer(id) {
   if (sliderAutoLockTimer) clearTimeout(sliderAutoLockTimer);
   sliderAutoLockTimer = setTimeout(() => {
-    lockSlider(id);
-  }, 4000); // 4 detik idle otomatis terkunci kembali agar scroll aman
+    commitAndSaveSpool(id);
+  }, 4000); // 4 detik idle otomatis tersimpan dan terkunci kembali agar scroll aman
 }
 
 function getSpoolBackground(spool) {
@@ -364,6 +453,9 @@ function createCardHtml(spool) {
   const isSilk = spool.colorFinish === 'silk';
   const bgStyle = getSpoolBackground(spool);
   const cardBorderStyle = getSpoolCardBorder(spool);
+
+  const hasUndo = editingInitialValues[spool.id] !== undefined && editingInitialValues[spool.id] !== percent;
+  const initialVal = editingInitialValues[spool.id];
 
   return `
     <article class="filament-card" id="card-${spool.id}" 
@@ -412,10 +504,26 @@ function createCardHtml(spool) {
                      id="num-input-${spool.id}" 
                      min="0" max="100" 
                      value="${percent}"
+                     onfocus="startEditingSession('${spool.id}')"
                      oninput="handleNumInputChange('${spool.id}', this.value)"
+                     onkeydown="if(event.key==='Enter'){ this.blur(); commitAndSaveSpool('${spool.id}'); }"
                      title="Ketik nominal persentase (0-100)">
               <span class="percent-unit">%</span>
             </div>
+
+            <!-- Tombol Undo (Muncul saat mengubah slider / nominal) -->
+            <button type="button" 
+                    class="step-btn btn-undo" 
+                    id="undo-btn-${spool.id}" 
+                    onclick="undoSpoolChange('${spool.id}')" 
+                    title="Batal perubahan (Kembalikan ke ${initialVal}%)" 
+                    style="${hasUndo ? 'display: inline-flex;' : 'display: none;'}">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M3 7v6h6"></path>
+                <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
+              </svg>
+              <span>Undo (${initialVal}%)</span>
+            </button>
           </div>
 
           <div class="quick-steps-bar">
@@ -454,6 +562,7 @@ function createCardHtml(spool) {
  * Handle Slider Input (Smooth 60fps local + Debounced Cloud Sync)
  */
 function handleSliderChange(id, value) {
+  startEditingSession(id);
   const percent = parseInt(value, 10);
   const target = spools.find(s => s.id === id);
   if (!target) return;
@@ -469,6 +578,7 @@ function handleSliderChange(id, value) {
   }
 
   updateTankVisual(id, percent, target);
+  updateUndoButton(id);
 
   // Sync to Firestore
   if (isCloudActive && db) {
@@ -486,6 +596,7 @@ function handleSliderChange(id, value) {
  */
 function handleNumInputChange(id, value) {
   if (value === '' || isNaN(value)) return;
+  startEditingSession(id);
   let percent = parseInt(value, 10);
   if (isNaN(percent)) return;
   percent = Math.max(0, Math.min(100, percent));
@@ -504,6 +615,7 @@ function handleNumInputChange(id, value) {
   }
 
   updateTankVisual(id, percent, target);
+  updateUndoButton(id);
 
   // Sync to Firestore
   if (isCloudActive && db) {
@@ -520,6 +632,7 @@ function handleNumInputChange(id, value) {
  * Step percentage with buttons
  */
 function stepPercent(id, delta) {
+  startEditingSession(id);
   const target = spools.find(s => s.id === id);
   if (!target) return;
 
@@ -537,6 +650,7 @@ function stepPercent(id, delta) {
   if (numInput) numInput.value = newPercent;
 
   updateTankVisual(id, newPercent, target);
+  updateUndoButton(id);
 
   if (isCloudActive && db) {
     db.collection('spools').doc(id).set(target, { merge: true }).catch(err => {
@@ -612,14 +726,19 @@ function setupSliderTouchEnhancements() {
   });
 }
 
-// Otomatis kunci kembali jika pengguna mengetuk di luar kartu/slider yang sedang aktif
+// Otomatis simpan perubahan dan kunci kembali jika pengguna mengetuk bagian lain di luar kartu
 document.addEventListener('pointerdown', (e) => {
-  if (!activeUnlockedSpoolId) return;
-  const activeGuard = document.getElementById(`guard-${activeUnlockedSpoolId}`);
-  const activeLockBtn = document.getElementById(`lock-btn-${activeUnlockedSpoolId}`);
-  if (activeGuard && !activeGuard.contains(e.target) && activeLockBtn && !activeLockBtn.contains(e.target)) {
-    lockSlider(activeUnlockedSpoolId);
-  }
+  const editingIds = new Set([
+    ...Object.keys(editingInitialValues),
+    ...(activeUnlockedSpoolId ? [activeUnlockedSpoolId] : [])
+  ]);
+
+  editingIds.forEach(id => {
+    const card = document.getElementById(`card-${id}`);
+    if (card && !card.contains(e.target)) {
+      commitAndSaveSpool(id);
+    }
+  });
 }, { passive: true });
 
 function updateTankVisual(id, percent, spoolOrColor) {
@@ -1157,6 +1276,9 @@ window.handleNumInputChange = handleNumInputChange;
 window.unlockSlider = unlockSlider;
 window.lockSlider = lockSlider;
 window.toggleSliderLock = toggleSliderLock;
+window.undoSpoolChange = undoSpoolChange;
+window.commitAndSaveSpool = commitAndSaveSpool;
+window.startEditingSession = startEditingSession;
 
 // Register Service Worker for PWA Installation
 if ('serviceWorker' in navigator) {

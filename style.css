@@ -780,6 +780,52 @@ body {
   border-color: var(--border-focus);
 }
 
+/* Tombol Undo Perubahan Slider / Nominal */
+.btn-undo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.42);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  min-height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  animation: undoPopIn 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-undo:hover {
+  background: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.btn-undo:active {
+  transform: scale(0.94);
+}
+
+.btn-undo svg {
+  flex-shrink: 0;
+}
+
+@keyframes undoPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Slider Touch Guard & Lock System (Anti-Kepencet Saat Scroll) */
 .slider-touch-guard {
   position: relative;
